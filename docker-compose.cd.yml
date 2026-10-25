@@ -1,0 +1,52 @@
+services:
+  backend-stable:
+    image: ${STABLE_IMAGE:-ci-dashboard-backend:local}
+    environment:
+      APP_DEPLOYMENT_SLOT: stable
+      APP_VERSION: ${STABLE_VERSION:-local}
+    ports:
+      - "127.0.0.1:18080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  backend-canary:
+    image: ${CANARY_IMAGE:-ci-dashboard-backend:local}
+    environment:
+      APP_DEPLOYMENT_SLOT: canary
+      APP_VERSION: ${CANARY_VERSION:-local}
+    ports:
+      - "127.0.0.1:18081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  canary-gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "8180:80"
+    environment:
+      STABLE_WEIGHT: ${STABLE_WEIGHT:-90}
+      CANARY_WEIGHT: ${CANARY_WEIGHT:-10}
+      NGINX_ENVSUBST_FILTER: ^(STABLE_WEIGHT|CANARY_WEIGHT)$
+    volumes:
+      - ./ops/nginx/canary.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      backend-stable:
+        condition: service_healthy
+      backend-canary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped

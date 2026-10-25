@@ -1,0 +1,13 @@
+{
+  "consumer": {"name": "order-service"},
+  "provider": {"name": "product-service"},
+  "metadata": {"pactSpecification": {"version": "3.0.0"}},
+  "interactions": [
+    {
+      "description": "a product exists for the order service",
+      "providerStates": [{"name": "product p-101 exists"}],
+      "request": {"method": "GET", "path": "/api/products/p-101", "headers": {"Accept": "application/json"}},
+      "response": {"status": 200, "headers": {"Content-Type": "application/json"}, "body": {"id": "p-101", "name": "Build Monitor", "price": 29.99}}
+    }
+  ]
+}
